@@ -7,6 +7,6 @@
 - `pv1.json`, `pv1.bin` — геометрия установки
 - `hero-poster.webp`, `hero-poster-m.webp` — заставка для быстрой загрузки и мобильных
 
-Раздаются через jsDelivr: `https://cdn.jsdelivr.net/gh/LLC-FERC/ferc-3d@v1/`
+Раздаются через jsDelivr: `https://cdn.jsdelivr.net/gh/LLC-FERC/ferc-3d@<commit>/`
 
 © ООО «ФЕРЦ»
