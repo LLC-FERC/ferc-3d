@@ -571,7 +571,7 @@ $('st-ext').innerHTML=chain(['Вход сверху','Шумоглушитель
 
 // ---------- цикл ----------
 function setOff(w,h){if(w>900)camera.setViewOffset(w,h,-w*0.22,h*0.03,w,h);else{camera.clearViewOffset();}}
-function resize(){const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.fov=r.width>900?28:Math.min(50,2*Math.atan(Math.tan(14*Math.PI/180)*1.88*0.52/(r.width/r.height))*180/Math.PI);setOff(r.width,r.height);camera.updateProjectionMatrix();drawBG($('bg').getContext('2d'),($('bg').width=r.width*Math.min(devicePixelRatio,2)),($('bg').height=r.height*Math.min(devicePixelRatio,2)));}
+function resize(){const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.fov=r.width>900?28:Math.min(50,2*Math.atan(Math.tan(14*Math.PI/180)*1.88*0.62/(r.width/r.height))*180/Math.PI);setOff(r.width,r.height);camera.updateProjectionMatrix();drawBG($('bg').getContext('2d'),($('bg').width=r.width*Math.min(devicePixelRatio,2)),($('bg').height=r.height*Math.min(devicePixelRatio,2)));}
 new ResizeObserver(resize).observe(stage);resize();
 const v3=new THREE.Vector3();
 function drawLabels(){if(labelsEl.hidden)return;const r=stage.getBoundingClientRect();const cd=new THREE.Vector3();camera.getWorldDirection(cd);
