@@ -148,18 +148,18 @@ const logoPath=new Path2D(LOGO_D);
 // ---------- загрузка модели ----------
 let J,BIN;
 try{
-  const [r1,r2]=await Promise.all([fetch(BASE+'pv1.json'),fetch(BASE+'pv1.bin')]);
+  const [r1,r2]=await Promise.all([fetch(BASE+'pv2.json'),fetch(BASE+'pv2.bin')]);
   if(!r1.ok||!r2.ok)throw new Error('http');
   J=await r1.json();BIN=await r2.arrayBuffer();
 }catch(e){$('loading').textContent='Модель не загрузилась. Обновите страницу.';return;}
 const root=new THREE.Group();root.scale.setScalar(0.001);root.position.set(1.155,0.113,0.475*0+0.475);scene.add(root);
 const DOORS=new THREE.Group();root.add(DOORS);   // двери стороны обслуживания (снимаются в разрезе)
-const geos=J.protos.map(p=>{
-  const q=new Int16Array(BIN,p.o,p.n*3),pos=new Float32Array(p.n*3);
-  const sc=[p.hi[0]-p.lo[0],p.hi[1]-p.lo[1],p.hi[2]-p.lo[2]].map(v=>Math.max(v,1e-3));
-  for(let i=0;i<p.n;i++)for(let k=0;k<3;k++)pos[i*3+k]=p.lo[k]+(q[i*3+k]+32768)/65535*sc[k];
-  const idx=p.b32?new Uint32Array(BIN,p.io,p.ni):new Uint16Array(BIN,p.io,p.ni);
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setIndex(new THREE.BufferAttribute(idx.slice(),1));
+const geos=J.protos.map(p=>{   // формат v2: координаты с шагом 0.2 мм, дельта по осям; индексы — дельта+zigzag+varint (в 3 раза меньше по сети)
+  const n=p.n,u8=new Uint8Array(BIN),dv=new DataView(BIN),pos=new Float32Array(n*3);let off=p.o;
+  for(let c=0;c<3;c++){let v=0;const lo=p.lo[c],st=p.st;for(let i=0;i<n;i++){v=(v+dv.getUint16(off,true))&0xFFFF;off+=2;pos[i*3+c]=lo+v*st;}}
+  const idx=n>65535?new Uint32Array(p.ni):new Uint16Array(p.ni);let o=p.o+p.vl,last=0;
+  for(let i=0;i<p.ni;i++){let x=0,m=1,b;do{b=u8[o++];x+=(b&127)*m;m*=128;}while(b&128);last+=(x&1)?-(x+1)/2:x/2;idx[i]=last;}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setIndex(new THREE.BufferAttribute(idx,1));
   g.computeVertexNormals();return g;});
 const mtx=new THREE.Matrix4();const HANDLES=[],TOPFRAME=[],SKINS=[],LATCHP=[],ACTS=[];
 for(let [pi,a,cat,mod,name,door] of J.inst){
