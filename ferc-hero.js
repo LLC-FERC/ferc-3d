@@ -163,12 +163,13 @@ const geos=J.protos.map(p=>{   // формат v2: координаты с ша�
   g.computeVertexNormals();return g;});
 const mtx=new THREE.Matrix4();const HANDLES=[],TOPFRAME=[],SKINS=[],LATCHP=[],ACTS=[];
 for(let [pi,a,cat,mod,name,door] of J.inst){
+  const opi=J.protos[pi].op??pi;   // исходный номер детали (до упаковки модели v2)
   if(name.startsWith('Деталь1^513'))continue;                 // скрытый лист под крышкой
   if(name.startsWith('Панель внутренняя^513'))cat='inner';
   if(name.startsWith('Трубка('))continue;
   if(cat==='rotor')continue;
   if(cat==='silencer')cat='inox';                               // корпус кулис — нержавеющая сталь
-  if(name.startsWith('Водяной нагрев')){if(pi===139)cat='fins';else if(pi===36||pi===169)cat='tsheet';else if(pi===64||pi===31)cat='galv';}   // ТО: алюминиевые ламели, медные трубки
+  if(name.startsWith('Водяной нагрев')){if(opi===139)cat='fins';else if(opi===36||opi===169)cat='tsheet';else if(opi===64||opi===31)cat='galv';}   // ТО: алюминиевые ламели, медные трубки
   if(/^(Зашивка|Стяжка направляющих|Направляющая роторного)/.test(name))continue;      // под прежний корпус 780×780 — заменены сплошной зашивкой
   if(name.startsWith('Поддон'))cat='inox';
   if(/^(Уголок_New|Швеллер|Швелле |Уголок установочный|Направляющая каплеуловителя)/.test(name))cat='base';      // опорная рама: без ложных бликов от окружения внутри профиля                       // поддон охладителя — нержавейка
@@ -179,10 +180,11 @@ for(let [pi,a,cat,mod,name,door] of J.inst){
   const m=new THREE.Mesh(geos[pi],MAT[cat]||MAT.galv);if(cat==='handle'&&door)HANDLES.push({m,pi});if(cat==='skin')SKINS.push({m,door});if(cat==='actuator')ACTS.push(m);
   mtx.set(a[0],a[3],a[6],a[9], a[1],a[4],a[7],a[10], a[2],a[5],a[8],a[11], 0,0,0,1);
   m.matrixAutoUpdate=false;m.matrix.copy(mtx);
-  const NZ=name.startsWith('Водяной нагрев')&&(pi===206||pi===34);   // наружные патрубки теплоносителя
+  const NZ=name.startsWith('Водяной нагрев')&&(opi===206||opi===34);   // наружные патрубки теплоносителя
   if(NZ)m.material=MAT.nozzle;
-  if(pi===206&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,185,0));
-  if(pi===34&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(-34.5,69.5,0));   // верхний патрубок теплообменника — в верхнюю часть секции
+  if(opi===206&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,185,0));
+  if(opi===34&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(-34.5,69.5,0));   // верхний патрубок теплообменника — в верхнюю часть секции
+  if(name.startsWith('Крышка шумоглушителя'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,a[4]<0?-35:35,0));   // кулисы выше: зазор до корпуса ~15 мм
   m.castShadow=true;m.receiveShadow=true;
   (door?DOORS:root).add(m);if(isTopFrame)TOPFRAME.push(m);
   if(/^(Водяной нагрев|Охладитель _|Стяжка ТО)/.test(name)){const c=m.clone();c.matrix.premultiply(new THREE.Matrix4().makeTranslation(275,0,0));root.add(c);}
@@ -293,7 +295,7 @@ function cyl(r,h,mat,parent,seg){const m=new THREE.Mesh(new THREE.CylinderGeomet
   },{repeat:[1,1]});
   const mk=(sx,sy)=>{const t=weave.clone();t.needsUpdate=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(sx/60,sy/60);
     return new THREE.MeshStandardMaterial({map:t,bumpMap:t,bumpScale:0.6,roughness:.92,metalness:0,side:DS});};
-  const SPL=[[-2456,-1914,95,504],[-1856,-1314,745,1154]];   // между бортами и крышками кулис
+  const SPL=[[-2456,-1914,60,539],[-1856,-1314,710,1189]];   // между бортами и крышками кулис
   for(const [x0,x1,y0,y1] of SPL){const mat=mk(x1-x0,y1-y0);
     for(const zc of [-175,-375,-575,-775])box(x1-x0,y1-y0,97,mat,(x0+x1)/2,(y0+y1)/2,zc);}
 })();
