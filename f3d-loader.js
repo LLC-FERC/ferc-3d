@@ -12,6 +12,8 @@
   var live=new MutationObserver(function(){if(document.body.classList.contains('live')){root.classList.add('f3d-live');live.disconnect();}});live.observe(document.body,{attributes:true,attributeFilter:['class']});
   cut.addEventListener('click',function(e){e.preventDefault();if(window.__ready)return;e.stopImmediatePropagation();cut.textContent='Загружаю модель…';
     window.FERC3D_boot().then(function(){window.__ready=true;cut.textContent='Заглянуть внутрь';cut.click();});},true);
-  if(!lite){var go=function(){var f=function(){window.FERC3D_boot().then(function(){window.__ready=true;});};('requestIdleCallback' in window)?requestIdleCallback(f,{timeout:1500}):setTimeout(f,300);};
-    if(document.readyState==='complete')go();else addEventListener('load',go);}
+  if(!lite){   // 3D стартует после загрузки страницы, когда закрыт баннер cookies (или через 4 с) и браузер свободен — клики не подвисают
+    var done=false,go=function(){if(done)return;done=true;var f=function(){window.FERC3D_boot().then(function(){window.__ready=true;});};('requestIdleCallback' in window)?requestIdleCallback(f,{timeout:2000}):setTimeout(f,300);};
+    var arm=function(){var shown=!!document.querySelector('[fs-cc="banner"]')&&!/(^|;\s*)fs-cc=/.test(document.cookie)&&!window.__fercCC;if(!shown){setTimeout(go,600);return;}addEventListener('ferc-cc-closed',function(){setTimeout(go,400);});setTimeout(go,4000);};
+    if(document.readyState==='complete')arm();else addEventListener('load',arm);}
 })();
