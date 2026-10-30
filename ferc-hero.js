@@ -9,7 +9,7 @@ try{await document.fonts.load('800 100px Inter');}catch(e){}
 
 // ---------- рендер ----------
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));   // 1.5 достаточно для резкости, заметно легче для видеокарты
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=0.88;
@@ -571,14 +571,16 @@ $('st-ext').innerHTML=chain(['Вход сверху','Шумоглушитель
 
 // ---------- цикл ----------
 function setOff(w,h){if(w>900)camera.setViewOffset(w,h,-w*0.22,h*0.03,w,h);else{camera.clearViewOffset();}}
-function resize(){const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.fov=r.width<600?46:28;setOff(r.width,r.height);camera.updateProjectionMatrix();drawBG($('bg').getContext('2d'),($('bg').width=r.width*Math.min(devicePixelRatio,2)),($('bg').height=r.height*Math.min(devicePixelRatio,2)));}
+function resize(){const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.fov=r.width>900?28:Math.min(50,2*Math.atan(Math.tan(14*Math.PI/180)*1.88*0.52/(r.width/r.height))*180/Math.PI);setOff(r.width,r.height);camera.updateProjectionMatrix();drawBG($('bg').getContext('2d'),($('bg').width=r.width*Math.min(devicePixelRatio,2)),($('bg').height=r.height*Math.min(devicePixelRatio,2)));}
 new ResizeObserver(resize).observe(stage);resize();
 const v3=new THREE.Vector3();
 function drawLabels(){if(labelsEl.hidden)return;const r=stage.getBoundingClientRect();const cd=new THREE.Vector3();camera.getWorldDirection(cd);
   for(const l of LABELS){v3.copy(l.p).project(camera);const vis=v3.z<1&&(cd.z<0.2||!DOORS.visible);l.el.style.opacity=vis?1:0;
     l.el.style.left=((v3.x+1)/2*r.width)+'px';l.el.style.top=((1-v3.y)/2*r.height)+'px';}}
+let inView=true;new IntersectionObserver(es=>{inView=es[0].isIntersecting;},{rootMargin:'100px'}).observe(stage);
 let t0=performance.now(),tAcc=0;
-function loop(now){const dt=Math.min(0.05,(now-t0)/1000);t0=now;if(!reduce)tAcc+=dt;const k=1-Math.pow(0.0015,dt);
+function loop(now){if(!inView||document.hidden){t0=now;requestAnimationFrame(loop);return;}   // вне экрана не рисуем
+  const dt=Math.min(0.05,(now-t0)/1000);t0=now;if(!reduce)tAcc+=dt;const k=1-Math.pow(0.0015,dt);
   if(!reduce&&!mode&&now-lastTouch>5000){goal.th=-0.70+0.20*Math.sin(tAcc*0.16);goal.ph=1.38+0.03*Math.sin(tAcc*0.11);}
   sph.r+=(goal.r-sph.r)*k;sph.th+=(goal.th-sph.th)*k;sph.ph+=(goal.ph-sph.ph)*k;target.lerp(goal.t,k);placeCam();
   if(FLOW.visible)updFlow(tAcc);renderer.render(scene,camera);if(!window.__live&&tAcc>0.4){window.__live=true;document.body.classList.add('live');}drawLabels();requestAnimationFrame(loop);}
