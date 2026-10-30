@@ -9,12 +9,12 @@ try{await document.fonts.load('800 100px Inter');}catch(e){}
 
 // ---------- рендер ----------
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));   // 1.5 достаточно для резкости, заметно легче для видеокарты
+const WEAK=document.documentElement.classList.contains('f3d-weak');renderer.setPixelRatio(Math.min(devicePixelRatio,WEAK?1:1.5));   // 1.5 достаточно для резкости, заметно легче для видеокарты
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=0.88;
 renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;   // сцена статична: тени считаем один раз, а не каждый кадр
 renderer.setClearColor(0x000000,0);
 const ANI=renderer.capabilities.getMaxAnisotropy();
 const MAXT=Math.min(renderer.capabilities.maxTextureSize,8192);
@@ -116,6 +116,7 @@ const BRUSH=(function(){const N=512,c=document.createElement('canvas');c.width=c
       brs=texture2D(brT,uv).r;diffuseColor.rgb*=mix(0.9,1.08,brs);}`)
    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor*=mix(1.35,0.7,brs);');};mat.needsUpdate=true;})(MAT.inox);
 
+await new Promise(r=>setTimeout(r,0));   // отдаём управление браузеру — страница не «замирает» во время сборки сцены
 // ---------- наклейки ----------
 function tex(w,h,draw,opt){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');draw(g,w,h);
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=ANI;
@@ -188,6 +189,7 @@ for(let [pi,a,cat,mod,name,door] of J.inst){
 }
 $('loading').hidden=true;
 
+await new Promise(r=>setTimeout(r,0));   // отдаём управление браузеру — страница не «замирает» во время сборки сцены
 // ---------- дополнения: поддон ротора, фильтрующие вставки ----------
 function box(sx,sy,sz,mat,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;(parent||root).add(m);return m;}
 function cyl(r,h,mat,parent,seg){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||32),mat);m.castShadow=true;(parent||root).add(m);return m;}
@@ -296,6 +298,7 @@ function cyl(r,h,mat,parent,seg){const m=new THREE.Mesh(new THREE.CylinderGeomet
     for(const zc of [-175,-375,-575,-775])box(x1-x0,y1-y0,97,mat,(x0+x1)/2,(y0+y1)/2,zc);}
 })();
 
+await new Promise(r=>setTimeout(r,0));   // отдаём управление браузеру — страница не «замирает» во время сборки сцены
 // ---------- обозначения на стороне обслуживания ----------
 const ZS=24.8;
 const STICK=new THREE.Group();DOORS.add(STICK);
@@ -471,6 +474,7 @@ decal(label,120,190,(-1684-1187)/2,599-40-95);
 root.traverse(o=>{if(o.isMesh&&o.material.transparent){o.castShadow=false;o.receiveShadow=false;}});
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.ShadowMaterial({opacity:.42}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
 
+await new Promise(r=>setTimeout(r,0));   // отдаём управление браузеру — страница не «замирает» во время сборки сцены
 // ---------- потоки ----------
 const FLOW=new THREE.Group();FLOW.visible=false;scene.add(FLOW);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -495,14 +499,16 @@ const LABELS=LAB.map(([nm,k,dir,p])=>{const el=document.createElement('div');el.
   el.innerHTML=(k?`<img alt="" src="${iconImg(k,dir)}">`:'')+'<span></span>';el.querySelector('span').textContent=nm;labelsEl.appendChild(el);return {el,p:W2(p)};});
 labelsEl.hidden=true;
 
+await new Promise(r=>setTimeout(r,0));   // отдаём управление браузеру — страница не «замирает» во время сборки сцены
 // ---------- студия: полированный бетонный пол, циклорама, фирменная LED-линия ----------
 const BGC=0x151618;
 renderer.setClearColor(BGC,1);scene.fog=new THREE.Fog(BGC,8.5,19);
 floor.visible=false;                                          // прежняя теневая подложка не нужна
 const STUDIO=new THREE.Group();scene.add(STUDIO);
-key.shadow.mapSize.set(4096,4096);key.shadow.radius=3;key.shadow.bias=-0.0003;
+key.shadow.mapSize.set(2048,2048);key.shadow.radius=3;key.shadow.bias=-0.0003;
 // отражение установки в полу
 const REFL=root.clone();REFL.scale.y=-0.001;REFL.position.y=-0.113;STUDIO.add(REFL);
+if(WEAK){REFL.visible=false;key.shadow.mapSize.set(1024,1024);}   // слабое устройство: без зеркального отражения, тени проще
 REFL.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
 // бетон: заполнитель, облачность, следы затирки, деформационные швы
 const conc=tex(1024,1024,(g,w,h)=>{
@@ -536,6 +542,7 @@ const ledR=led.clone();ledR.position.y=-LY;STUDIO.add(ledR);const haloR=halo.clo
 const pool=new THREE.Mesh(new THREE.PlaneGeometry(9,6),new THREE.MeshBasicMaterial({map:tex(512,512,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,250,240,.05)');gr.addColorStop(1,'rgba(255,250,240,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);},{}),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
 pool.rotation.x=-Math.PI/2;pool.position.set(0.2,0.003,0.3);STUDIO.add(pool);
 const fill=new THREE.DirectionalLight(0xdfe8ff,0.35);fill.position.set(-6,2.5,3);scene.add(fill);
+await new Promise(r=>setTimeout(r,0));   // отдаём управление браузеру — страница не «замирает» во время сборки сцены
 // ---------- камера и управление ----------
 const target=new THREE.Vector3(0,0.75,0);
 const VIEWS={front:{th:-0.70,ph:1.38,r:7.4},back:{th:Math.PI-0.55,ph:1.2,r:6.2},side:{th:-1.35,ph:1.35,r:5.6},top:{th:-0.3,ph:0.55,r:6.6}};
@@ -559,7 +566,7 @@ const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size===0)mode=null;else if(ptrs.si
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 // колесо мыши не перехватываем — страница прокручивается как обычно
 function tog(id,fn){const b=$(id);b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);fn(on);};}
-tog('t-cut',on=>{DOORS.visible=!on;REFL.children[0].visible=!on;$('t-cut').textContent=on?'Закрыть двери':'Заглянуть внутрь';});tog('t-flow',on=>{FLOW.visible=on;});tog('t-lab',on=>{labelsEl.hidden=!on;});
+tog('t-cut',on=>{DOORS.visible=!on;renderer.shadowMap.needsUpdate=true;REFL.children[0].visible=!on;$('t-cut').textContent=on?'Закрыть двери':'Заглянуть внутрь';});tog('t-flow',on=>{FLOW.visible=on;});tog('t-lab',on=>{labelsEl.hidden=!on;});
 
 // ---------- легенда и состав ----------
 const LEG=[['damper','Воздушный клапан','только на наружном воздухе'],['filter','Фильтр','панельный'],['rotor','Роторный рекуператор','поддон с дренажом'],
@@ -579,7 +586,9 @@ function drawLabels(){if(labelsEl.hidden)return;const r=stage.getBoundingClientR
     l.el.style.left=((v3.x+1)/2*r.width)+'px';l.el.style.top=((1-v3.y)/2*r.height)+'px';}}
 let inView=true;new IntersectionObserver(es=>{inView=es[0].isIntersecting;},{rootMargin:'100px'}).observe(stage);
 let t0=performance.now(),tAcc=0;
+let lastR=0;
 function loop(now){if(!inView||document.hidden){t0=now;requestAnimationFrame(loop);return;}   // вне экрана не рисуем
+  if(!mode&&window.__live&&now-lastR<31){requestAnimationFrame(loop);return;}lastR=now;   // плавное покачивание — 30 кадров/с, при вращении рукой — полная частота
   const dt=Math.min(0.05,(now-t0)/1000);t0=now;if(!reduce)tAcc+=dt;const k=1-Math.pow(0.0015,dt);
   if(!reduce&&!mode&&now-lastTouch>5000){goal.th=-0.70+0.20*Math.sin(tAcc*0.16);goal.ph=1.38+0.03*Math.sin(tAcc*0.11);}
   sph.r+=(goal.r-sph.r)*k;sph.th+=(goal.th-sph.th)*k;sph.ph+=(goal.ph-sph.ph)*k;target.lerp(goal.t,k);placeCam();
