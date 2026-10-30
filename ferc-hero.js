@@ -182,8 +182,8 @@ for(let [pi,a,cat,mod,name,door] of J.inst){
   m.matrixAutoUpdate=false;m.matrix.copy(mtx);
   const NZ=name.startsWith('Водяной нагрев')&&(opi===206||opi===34);   // наружные патрубки теплоносителя
   if(NZ)m.material=MAT.nozzle;
-  if(opi===206&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,185,0));
-  if(opi===34&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(-34.5,69.5,0));   // верхний патрубок теплообменника — в верхнюю часть секции
+  if(opi===206&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,185,0));   // верхний патрубок (подача)
+  if(opi===34&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(-34.5,49.5,0));   // нижний патрубок: на 20 мм ниже, выше значка секции   // верхний патрубок теплообменника — в верхнюю часть секции
   if(name.startsWith('Крышка шумоглушителя'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,a[4]<0?-35:35,0));   // кулисы выше: зазор до корпуса ~15 мм
   m.castShadow=true;m.receiveShadow=true;
   (door?DOORS:root).add(m);if(isTopFrame)TOPFRAME.push(m);
