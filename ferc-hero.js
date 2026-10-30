@@ -180,10 +180,9 @@ for(let [pi,a,cat,mod,name,door] of J.inst){
   const m=new THREE.Mesh(geos[pi],MAT[cat]||MAT.galv);if(cat==='handle'&&door)HANDLES.push({m,pi});if(cat==='skin')SKINS.push({m,door});if(cat==='actuator')ACTS.push(m);
   mtx.set(a[0],a[3],a[6],a[9], a[1],a[4],a[7],a[10], a[2],a[5],a[8],a[11], 0,0,0,1);
   m.matrixAutoUpdate=false;m.matrix.copy(mtx);
-  const NZ=name.startsWith('Водяной нагрев')&&(opi===206||opi===34);   // наружные патрубки теплоносителя
+  if(name.startsWith('Водяной нагрев')&&(opi===206||opi===34||opi===302||opi===356))continue;   // коллекторы и патрубки ТО — ровные цилиндры, см. ниже
+  const NZ=false;   // наружные патрубки теплоносителя
   if(NZ)m.material=MAT.nozzle;
-  if(opi===206&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,185,0));   // верхний патрубок (подача)
-  if(opi===34&&name.startsWith('Водяной нагрев'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(-34.5,49.5,0));   // нижний патрубок: на 20 мм ниже, выше значка секции   // верхний патрубок теплообменника — в верхнюю часть секции
   if(name.startsWith('Крышка шумоглушителя'))m.matrix.premultiply(new THREE.Matrix4().makeTranslation(0,a[4]<0?-35:35,0));   // кулисы выше: зазор до корпуса ~15 мм
   m.castShadow=true;m.receiveShadow=true;
   (door?DOORS:root).add(m);if(isTopFrame)TOPFRAME.push(m);
@@ -430,7 +429,7 @@ const plate=tex(560,400,(g,w,h)=>{g.fillStyle='#f6f6f3';g.fillRect(0,0,w,h);g.st
   const scr=new THREE.SphereGeometry(2.6,12,6,0,Math.PI*2,0,Math.PI/2);scr.rotateX(Math.PI/2);scr.scale(1,1,.5);
   const ss=new THREE.MeshStandardMaterial({color:C(0xEDEFF1),roughness:.12,metalness:1});
   const rub=new THREE.MeshStandardMaterial({color:C(0x111213),roughness:.75,metalness:0});
-  for(const dx of [0,275])for(const [x,y] of [[-804,265],[-703.5,455.5]]){
+  for(const dx of [0,275])for(const [x,y] of [[-819.1,235],[-703.6,455.3]]){   // по осям патрубков ТО
     const g=new THREE.Group();g.position.set(x+dx,y,ZS+0.8);DOORS.add(g);
     const d=new THREE.Mesh(disc,ss);d.castShadow=d.receiveShadow=true;g.add(d);
     const e=new THREE.Mesh(bev,ss);e.position.z=0.2;g.add(e);
@@ -441,17 +440,27 @@ const plate=tex(560,400,(g,w,h)=>{g.fillStyle='#f6f6f3';g.fillRect(0,0,w,h);g.st
 // латунные резьбовые муфты на концах патрубков и перемычки к коллекторам (внутри)
 (function(){
   const brass=new THREE.MeshStandardMaterial({color:C(0xC9A04A),roughness:.28,metalness:1});
-  const body=new THREE.CylinderGeometry(21,21,32,40);body.rotateX(Math.PI/2);
-  const thr=new THREE.TorusGeometry(21.2,1.1,6,40);
-  const face=new THREE.RingGeometry(13.5,21,40);const hole=new THREE.CircleGeometry(13.5,32);
-  const jump=new THREE.CylinderGeometry(17.5,17.5,52,24);jump.rotateZ(Math.PI/2);
+  // теплообменник: два вертикальных коллектора Ø35 и патрубки Ø35, выходящие прямо из них наружу (одна ось — без смещений)
+  const R=17.5,ZC=-47,ZE=120.5;                                    // радиус трубы, ось коллекторов, торец патрубка
+  const body=new THREE.CylinderGeometry(R+2.5,R+2.5,32,48);body.rotateX(Math.PI/2);   // муфта плотно на патрубке, стенка 2,5 мм
+  const thr=new THREE.TorusGeometry(R+2.7,1,6,48);
+  const face=new THREE.RingGeometry(R-3.5,R+2.5,48);const hole=new THREE.CircleGeometry(R-3.5,40);
+  const hdr=new THREE.CylinderGeometry(R,R,474.5-16.1,48);           // коллектор
+  const cap=new THREE.CircleGeometry(R,40);
+  const nz=new THREE.CylinderGeometry(R,R,ZE-ZC,48);nz.rotateX(Math.PI/2);   // патрубок
+  const HX=[[-769.1,-50,235],[-703.6,0,455.3]];               // [ось коллектора X, вынос патрубка по X, высота Y]: нижний вынесен влево, чтобы не перекрывать ручку двери
+  const sph=new THREE.SphereGeometry(R,48,24);
   for(const dx of [0,275]){
-    for(const [x,y] of [[-804,265],[-703.5,455.5]]){
-      const b=new THREE.Mesh(body,brass);b.position.set(x+dx,y,118);b.castShadow=true;root.add(b);
-      for(let i=0;i<5;i++){const t=new THREE.Mesh(thr,brass);t.position.set(x+dx,y,106+i*6);root.add(t);}
-      const f=new THREE.Mesh(face,brass);f.position.set(x+dx,y,134.1);root.add(f);
-      const h=new THREE.Mesh(hole,MAT.black);h.position.set(x+dx,y,133.9);root.add(h);}
-    const j=new THREE.Mesh(jump,MAT.copper);j.position.set(-786.75+dx,265,-47);root.add(j);   // нижний патрубок смещён — перемычка к коллектору
+    for(const [xh,ox,y] of HX){const x=xh+ox;
+      const h=new THREE.Mesh(hdr,MAT.copper);h.position.set(xh+dx,(474.5+16.1)/2,ZC);h.castShadow=h.receiveShadow=true;root.add(h);
+      for(const yy of [16.1,474.5]){const c=new THREE.Mesh(cap,MAT.copper);c.rotation.x=yy>100?-Math.PI/2:Math.PI/2;c.position.set(xh+dx,yy,ZC);root.add(c);}
+      if(ox){const L=Math.abs(ox),j=new THREE.Mesh(new THREE.CylinderGeometry(R,R,L,48),MAT.nozzle);j.rotation.z=Math.PI/2;j.position.set(xh+ox/2+dx,y,ZC);root.add(j);   // прямая перемычка от коллектора
+        const e=new THREE.Mesh(sph,MAT.nozzle);e.position.set(x+dx,y,ZC);root.add(e);}                              // скруглённый угол
+      const n=new THREE.Mesh(nz,MAT.nozzle);n.position.set(x+dx,y,(ZC+ZE)/2);n.castShadow=n.receiveShadow=true;root.add(n);
+      const b=new THREE.Mesh(body,brass);b.position.set(x+dx,y,ZE-16+14);b.castShadow=true;root.add(b);
+      for(let i=0;i<5;i++){const t=new THREE.Mesh(thr,brass);t.position.set(x+dx,y,ZE-16+2+i*6);root.add(t);}
+      const f=new THREE.Mesh(face,brass);f.position.set(x+dx,y,ZE+14.1);root.add(f);
+      const o=new THREE.Mesh(hole,MAT.black);o.position.set(x+dx,y,ZE+13.9);root.add(o);}
   }
 })();
 // затенение внутри опорной рамы: нижняя полка швеллера внутри в тени, не даёт белых бликов в вырезах
